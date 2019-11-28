@@ -293,32 +293,50 @@ __global__ void gpu_gaussian(int width, int height, float *image, float *image_o
     int offset_t = index_y * width + index_x;
     int offset   = index_y * width + index_x;
 
-    sh_block[ (threadIdx.x + 1) + (threadIdx.y + 1) *  BLOCK_SIZE_SH ] = image[offset_t];
+    sh_block[ threadIdx.x + threadIdx.y *  BLOCK_SIZE_SH ] = image[offset_t];
 
     __syncthreads();
 
     // ALL EDGES
+    /*
     if( threadIdx.x == 0){
         sh_block[threadIdx.x + (threadIdx.y + 1) * BLOCK_SIZE_SH] = image[offset_t - 1 + 18];
         //sh_block[threadIdx.x + (threadIdx.y+1) * BLOCK_SIZE_SH] = 255.0f;
-    }
+    }*/
 
     if( threadIdx.x == 15){
-        sh_block[threadIdx.x + 2 + (threadIdx.y + 1) * BLOCK_SIZE_SH] = image[offset_t + 1];
+        sh_block[threadIdx.x + 1 + threadIdx.y * BLOCK_SIZE_SH] = image[offset_t + 1];
+        sh_block[threadIdx.x + 2 + threadIdx.y * BLOCK_SIZE_SH] = image[offset_t + 2];
         //sh_block[threadIdx.x + 2 + (threadIdx.y+1) * BLOCK_SIZE_SH] = 0.0f;
     }
-
+/*
     if( threadIdx.y == 0){
-        sh_block[threadIdx.x + 1 + threadIdx.y * BLOCK_SIZE_SH] = image[offset_t - width + (18*width)];
-        //sh_block[threadIdx.x + 1 + (threadIdx.y) * BLOCK_SIZE_SH] = 255.0f;
+        sh_block[threadIdx.y + 1 + threadIdx.y * BLOCK_SIZE_SH] = image[offset_t - width];
+        //sh_block[threadIdx.x + 1 + threadIdx.y * BLOCK_SIZE_SH] = 255.0f;
 
     }
 
+    */
+
     if( threadIdx.y == 15){
-        sh_block[threadIdx.x + 1 + (threadIdx.y + 2) * BLOCK_SIZE_SH] = image[offset_t];
+        sh_block[threadIdx.x + (threadIdx.y + 1) * BLOCK_SIZE_SH] = image[offset_t + 1 * width];
+        sh_block[threadIdx.x + (threadIdx.y + 2) * BLOCK_SIZE_SH] = image[offset_t + 2 * width];
         //sh_block[threadIdx.x + 1 + (threadIdx.y+2) * BLOCK_SIZE_SH] = 0.0f;
 
     }
+
+    if( threadIdx.x == 15 && threadIdx.y == 15){
+        sh_block[threadIdx.x + 1 + (threadIdx.y + 1) * BLOCK_SIZE_SH ] = image[offset_t + 1 + width];
+        sh_block[threadIdx.x + 2 + (threadIdx.y + 1) * BLOCK_SIZE_SH ] = image[offset_t + 2 + width];
+        sh_block[threadIdx.x + 1 + (threadIdx.y + 2) * BLOCK_SIZE_SH ] = image[offset_t + 1 + 2*width];
+        sh_block[threadIdx.x + 2 + (threadIdx.y + 2) * BLOCK_SIZE_SH ] = image[offset_t + 2 + 2*width];
+    }
+
+
+    __syncthreads();
+
+
+
 
     //Corners
  /*   if(threadIdx.x == 0 && threadIdx.y == 0){
@@ -337,7 +355,6 @@ __global__ void gpu_gaussian(int width, int height, float *image, float *image_o
         sh_block[17*18] = image[offset + 2 * width];
     }
 */
-    __syncthreads();
 
     if (index_x < (width - 2) && index_y < (height - 2))
     {
@@ -360,13 +377,12 @@ __global__ void gpu_gaussian(int width, int height, float *image, float *image_o
 
 
 
-        image_out[offset] = gpu_applyFilter(&sh_block[(threadIdx.x+1) + (threadIdx.y+1) * BLOCK_SIZE_SH], 18, gaussian, 3);
+        image_out[offset] = gpu_applyFilter(&sh_block[(threadIdx.x) + (threadIdx.y) * BLOCK_SIZE_SH], 18, gaussian, 3);
         if(threadIdx.x == 0 || threadIdx.x == 15 || threadIdx.y == 0 || threadIdx.y == 15){
             //printf( "%d, %d \n", (threadIdx.x + 1), (threadIdx.y+1) * blockDim.x );
     }
 
         //image_out[offset] = sh_block[(threadIdx.x + 1) + (threadIdx.y + 1) * (blockDim.x + 2)];
-
         //image_out[offset] = gpu_applyFilter(&image[offset_t], width, gaussian, 3);
     }
 }
@@ -425,14 +441,37 @@ __global__ void gpu_sobel(int width, int height, float *image, float *image_out)
     int offset_t = index_y * width + index_x;
     int offset   = (index_y + 1) * width + (index_x + 1);
 
-    //float gx = gpu_applyFilter(&image[offset_t], width, sobel_x, 3);
-    //float gy = gpu_applyFilter(&image[offset_t], width, sobel_y, 3);
 
-    sh_block[ threadIdx.x + threadIdx.y * blockDim.x ] = image[offset_t];
+
+    //Pixels inside 16*16 block
+    sh_block[ threadIdx.x + threadIdx.y *  BLOCK_SIZE_SH ] = image[offset_t];
+
+    // ALL EDGES
+
+    if( threadIdx.x == 15){
+        sh_block[threadIdx.x + 1 + threadIdx.y * BLOCK_SIZE_SH] = image[offset_t + 1];
+        sh_block[threadIdx.x + 2 + threadIdx.y * BLOCK_SIZE_SH] = image[offset_t + 2];
+        //sh_block[threadIdx.x + 2 + (threadIdx.y+1) * BLOCK_SIZE_SH] = 0.0f;
+    }
+
+    if( threadIdx.y == 15){
+        sh_block[threadIdx.x + (threadIdx.y + 1) * BLOCK_SIZE_SH] = image[offset_t + 1 * width];
+        sh_block[threadIdx.x + (threadIdx.y + 2) * BLOCK_SIZE_SH] = image[offset_t + 2 * width];
+        //sh_block[threadIdx.x + 1 + (threadIdx.y+2) * BLOCK_SIZE_SH] = 0.0f;
+
+    }
+
+    if( threadIdx.x == 15 && threadIdx.y == 15){
+        sh_block[threadIdx.x + 1 + (threadIdx.y + 1) * BLOCK_SIZE_SH ] = image[offset_t + 1 + width];
+        sh_block[threadIdx.x + 2 + (threadIdx.y + 1) * BLOCK_SIZE_SH ] = image[offset_t + 2 + width];
+        sh_block[threadIdx.x + 1 + (threadIdx.y + 2) * BLOCK_SIZE_SH ] = image[offset_t + 1 + 2*width];
+        sh_block[threadIdx.x + 2 + (threadIdx.y + 2) * BLOCK_SIZE_SH ] = image[offset_t + 2 + 2*width];
+    }
+
     __syncthreads();
 
-    float gx = gpu_applyFilter(&sh_block[ threadIdx.x + threadIdx.y * blockDim.x ], 18, sobel_x, 3);
-    float gy = gpu_applyFilter(&sh_block[ threadIdx.x + threadIdx.y * blockDim.x ], 18, sobel_y, 3);
+    float gx = gpu_applyFilter(&sh_block[(threadIdx.x) + (threadIdx.y) * BLOCK_SIZE_SH], 18, sobel_x, 3);
+    float gy = gpu_applyFilter(&sh_block[(threadIdx.x) + (threadIdx.y) * BLOCK_SIZE_SH], 18, sobel_y, 3);
 
     // Note: The output can be negative or exceed the max. color value
     // of 255. We compensate this afterwards while storing the file.
