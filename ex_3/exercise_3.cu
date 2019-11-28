@@ -184,27 +184,17 @@ void cublas_sgemm(float *C, float *A, float *B, long size)
 	float alpha = 1.0;
 	float beta = 0.0;
 
-	printf("dddasdasd");
-	sleep(1);
+	printf("dddasdasd\n");
 
 	cublasHandle_t handle;
 	cublasCreate(&handle);
+	//cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
 
-	sleep(2);
-
-	printf("made it furtherrrr");
+	printf("made it furtherrrr\n");
 
 	gettimeofday(&t0, NULL);
 	/* TODO fill in the blanks, do C = BA instead of C = AB */
-	cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, size, size, size,
-	&alpha,
-	 B,
-	  size,
-	   A,
-	    size,
-	     &beta,
-	       C,
-	        size);
+	cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, size, size, size,	&alpha,B,size,A,size,&beta,C,size);
 	checkCudaErrors(cudaDeviceSynchronize());
 	gettimeofday(&t1, NULL);
 	cublasDestroy(handle);
@@ -284,7 +274,6 @@ int main(int argc, char *argv[])
 
 	/* set C on GPU and run cublas */
 
-	
 	checkCudaErrors(cudaMemset(d_C, 0, sizeof(float)*size*size));
 	printf("ASDASDASD\n");
 	cublas_sgemm(d_C, d_A, d_B, size);
@@ -298,6 +287,7 @@ int main(int argc, char *argv[])
 	}
 
 	
+	
 
 	/* run naive gpu gemm */
 
@@ -310,12 +300,12 @@ int main(int argc, char *argv[])
 	*/
 	/* run shared */
 
-	/*	
+		
 	checkCudaErrors(cudaMemset(d_C, 0, sizeof(float)*size*size));
 	shared_sgemm(d_C, d_A, d_B, size);
 	checkCudaErrors(cudaMemcpy(C_result, d_C, sizeof(float)*size*size, cudaMemcpyDeviceToHost));
 	compare_matrix(C_result, C_truth, size, THRESHOLD);
-	*/
+	
 	
 
 
