@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
 
 		*/
 			int size = sizeof(Particle)*NUM_PARTICLES;
-			cudaMalloc((void **)&d_particles, size);
+			cudaMallocHost((void **)&d_particles, size);
 				
 			cudaMemcpy(d_particles, particles, size, cudaMemcpyHostToDevice);
 
